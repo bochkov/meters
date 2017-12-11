@@ -1,0 +1,24 @@
+branches:
+  only:
+    - master
+
+sudo: required
+
+services:
+  - docker
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
+before_install:
+  - pip install --user awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - eval $(aws ecr get-login --region us-east-1 --no-include-email)
+
+script:
+  - docker --version
+  - docker build -t meters .
+  - docker tag meters:latest 902382300595.dkr.ecr.us-east-1.amazonaws.com/meters:latest
+  - docker push 902382300595.dkr.ecr.us-east-1.amazonaws.com/meters:latest

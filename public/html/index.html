@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head th:fragment="head">
+    <meta charset="UTF-8" />
+    <title>Учет показаний счетчиков</title>
+
+    <link rel="stylesheet" href="css/foundation.min.css" />
+    <link rel="stylesheet" href="css/font-awesome.min.css" />
+    <link rel="stylesheet" href="css/angular-chart.css" />
+    <link rel="stylesheet" href="css/style.css" />
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <script src="js/angular.min.js"></script>
+    <script src="js/angular-locale_ru.js"></script>
+    <script src="js/mm-foundation-tpls-0.6.0.min.js"></script>
+    <script src="js/Chart.min.js"></script>
+    <script src="js/angular-chart.min.js"></script>
+    <script src="js/script.js"></script>
+</head>
+<body ng-app="metersApp">
+
+<div ng-controller="meterController" ng-init="init()">
+
+    <div class="contain-to-grid fixed">
+        <nav class="top-bar" data-topbar="true" role="navigation">
+            <section class="top-bar-section small-10 small-centered columns">
+                <ul class="right">
+                    <li>
+                        <a href="#" ng-click="addMeter()"><i class="fa fa-tachometer"></i> Добавить счетчик</a>
+                    </li>
+                </ul>
+                <ul class="left">
+                    <li ng-class="currentView == 'table-view' ? 'active' : ''">
+                        <a href="#" ng-model="currentView" ng-click="currentView='table-view'">
+                            <i class="fa fa-table"></i> Таблица</a>
+                    </li>
+                    <li ng-class="currentView == 'graph-view' ? 'active' : ''">
+                        <a href="#" ng-model="currentView" ng-click="currentView='graph-view'">
+                            <i class="fa fa-bar-chart-o"></i> Аналитика</a>
+                    </li>
+                </ul>
+            </section>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="large-11 large-centered columns">
+            <div ng-class="currentView == 'table-view' ? '' : 'hide'">
+                <div ng-repeat="res in result">
+                    <h3 ng-init="fullview=3">
+                        <span class="plink" ng-click="fullview = fullview == 'Infinity' ? '3' : 'Infinity'" ng-bind="res.name"></span>
+                        <small># <span ng-bind="res.number"></span></small>
+                    </h3>
+                    <div>
+                        <button class="button" tooltip="Добавить показание" tooltip-placement="right" ng-click="addValue(res.id)">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                        <button class="button secondary" tooltip="Редактировать счетчик" tooltip-placement="right" ng-click="editMeter(res.id)">
+                            <i class="fa fa-pencil"></i>
+                        </button>
+                        <button class="button alert" tooltip="Удалить счетчик" tooltip-placement="right" ng-click="deleteMeter(res.id)">
+                            <i class="fa fa-trash-o"></i>
+                        </button>
+                    </div>
+
+                    <table ng-if="res.values.length > 0">
+                        <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Значение, {{res.unit}}</th>
+                            <th>&#916;, {{res.unit}}</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="value in res.values | orderBy:date | limitTo: fullview">
+                            <td ng-bind="value.date | date : 'd MMMM yyyy'"></td>
+                            <td ng-bind="value.value"></td>
+                            <td ng-bind="$index+1 >= res.values.length ? '' : value.value - res.values[$index+1].value"></td>
+                            <td>
+                        <span class="link" tooltip="редактировать показание" tooltip-placement="bottom" ng-click="editValue(value.id)">
+                            <i class="fa fa-pencil"></i>
+                        </span>
+                        &nbsp;
+                        <span class="link" tooltip="удалить показание" tooltip-placement="bottom" ng-click="deleteValue(value.id,res.id)">
+                            <i class="fa fa-minus"></i>
+                        </span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div ng-class="currentView == 'graph-view' ? '' : 'hide'">
+                <ul class="button-group">
+                    <li><button class="button">Все</button></li>
+                    <li><button class="button">За год</button></li>
+                    <li><button class="button">За 6 месяцев</button></li>
+                </ul>
+
+                <canvas id="bar" class="chart chart-bar" data="data" labels="labels"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ****** TEMPLATES ****** -->
+
+    <!-- add meter template -->
+    <script type="text/ng-template" id="addMeter.html">
+        <h3 ng-bind="title">test</h3>
+        <form>
+            <div class="row">
+                <div class="large-12 columns">
+                    <label>Название
+                        <input type="text" id="meterName" ng-model="data.name" />
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-12 columns">
+                    <label>Номер
+                        <input type="text" id="meterNumber" ng-model="data.number" />
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-12 columns">
+                    <label>Единица измерения
+                        <input type="text" id="meterUnit" ng-model="data.unit" />
+                    </label>
+                </div>
+            </div>
+        </form>
+        <a class="button primary" ng-click="ok()">Сохранить</a>
+        <a class="button secondary" ng-click="cancel()">Отменить</a>
+    </script>
+
+    <!-- confirm delete meter -->
+    <script type="text/ng-template" id="confirmDeleteMeter.html">
+        <h3>Удалить<br/><span class="red">{{meter.name}} # {{meter.number}}</span><br/>и все его показания?</h3>
+        <br/>
+        <a class="button primary" ng-click="ok()">Да</a>
+        <a class="button secondary" ng-click="cancel()">Отмена</a>
+    </script>
+
+    <!-- add value -->
+    <script type="text/ng-template" id="addValue.html">
+        <h3>{{title}} для<br/><span class="red">{{meter.name}} # {{meter.number}}</span></h3>
+        <br/>
+        <form>
+            <div class="row">
+                <div class="large-12 columns">
+                    <label>Значение, {{meter.unit}}
+                        <input type="text" id="valueValue" ng-model="data.value" />
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-12 columns">
+                    <label>Дата
+                        <input type="date" ng-model="data.date" />
+                    </label>
+                </div>
+            </div>
+        </form>
+        <a class="button primary" ng-click="ok()">Сохранить</a>
+        <a class="button secondary" ng-click="cancel()">Отменить</a>
+    </script>
+
+    <!-- confirm delete value -->
+    <script type="text/ng-template" id="confirmDeleteValue.html">
+        <h3>{{meter.name}} # {{meter.number}}<br/>Удалить значение<br/><span class="red">{{value.value}} {{meter.unit}} от {{value.date | date:"longDate"}}</span>?</h3>
+        <br/>
+        <a class="button primary" ng-click="ok()">Да</a>
+        <a class="button secondary" ng-click="cancel()">Отмена</a>
+    </script>
+
+</div>
+
+</body>
+</html>
