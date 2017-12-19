@@ -27,7 +27,7 @@ proc allMeters*(pgdb: DbConn) : seq[Meter] =
   var meters : seq[Meter] = @[]
   for row in rows:
     meters.add(
-      newMeter(row, getValues(pgdb, row[0]))
+      newMeter(row, getValues(pgdb, row[0], 12))
     )
   return meters
 
