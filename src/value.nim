@@ -44,7 +44,7 @@ proc saveValue*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"INSERT INTO value (id, date, value, meter_id) VALUES (?, ?, ?, ?)",
     pgdb.getValue(sql"SELECT max(id) FROM value").parseInt() + 1, 
-    fromSeconds(json["date"].getFNum()),
+    fromSeconds(json["date"].getFNum() / 1000),
     json["value"].getStr().parseInt(),
     json["meter"].getNum()
   )
@@ -52,7 +52,7 @@ proc saveValue*(pgdb : DbConn, json : JsonNode) : bool =
 proc editValue*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"UPDATE value SET date=?, value=? WHERE id=?",
-    fromSeconds(json["date"].getFNum()),
+    fromSeconds(json["date"].getFNum() / 1000),
     json["value"].getStr().parseInt(),
     json["id"].getNum()
   )
