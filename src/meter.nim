@@ -10,7 +10,7 @@ type
     unit : string
     values : seq[Value]
 
-proc newMeter(id : string, name : string, number : string, unit : string, values : seq[Value]) : Meter = 
+proc newMeter(id : string, name : string, number : string, unit : string, values : seq[Value]) : Meter =
   return Meter(
     id : id.parseInt(),
     name : name,
@@ -42,24 +42,24 @@ proc meterByValue*(pgdb : DbConn, id : string) : Meter =
 proc saveMeter*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"INSERT INTO meter (id, name, number, unit) VALUES (?, ?, ?, ?)",
-    pgdb.getValue(sql"SELECT max(id) FROM meter").parseInt() + 1, 
-    json["name"].getStr(), 
-    json["number"].getStr(), 
+    pgdb.getValue(sql"SELECT max(id) FROM meter").parseInt() + 1,
+    json["name"].getStr(),
+    json["number"].getStr(),
     json["unit"].getStr()
   )
 
 proc editMeter*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"UPDATE meter SET name=?, number=?, unit=? WHERE id=?",
-    json["name"].getStr(), 
-    json["number"].getStr(), 
+    json["name"].getStr(),
+    json["number"].getStr(),
     json["unit"].getStr(),
-    json["id"].getNum
+    json["id"].getInt()
   )
 
 proc deleteMeter*(pgdb : DbConn, json : JsonNode) : bool =
   try:
-    var id : int = json["id"].getNum().int
+    var id : int = json["id"].getInt()
     pgdb.exec(sql"DELETE FROM value WHERE meter_id=?", id)
     pgdb.exec(sql"DELETE FROM meter WHERE id=?", id)
     return true
@@ -68,13 +68,13 @@ proc deleteMeter*(pgdb : DbConn, json : JsonNode) : bool =
     return false
 
 proc toJson*(meter : Meter) : JsonNode =
-  var values = %* {}
+  var values = newJArray()
   for value in meter.values:
     values.add(value.toJson())
-  return %* { 
-    "id" : meter.id, 
-    "name" : meter.name, 
-    "number": meter.number, 
+  return %* {
+    "id" : meter.id,
+    "name" : meter.name,
+    "number": meter.number,
     "unit": meter.unit,
     "values": values
   }

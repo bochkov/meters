@@ -5,13 +5,16 @@ import "db"
 type
   Value* = ref object of RootObj
     id : int
-    date : float
+    date : int64
     value : int64
 
 proc newValue(id : string, date : string, value : string) : Value =
+  var dt: string = date
+  if date.contains("."):
+    dt = date.substr(0, date.find('.')-1)
   return Value(
     id : id.parseInt(),
-    date : date.parse("yyyy-MM-dd HH:mm:ss").toTime().toSeconds() * 1000,
+    date : dt.parse("yyyy-MM-dd HH:mm:ss").toTime().toUnix() * 1000,
     value : value.parseInt()
   )
 
@@ -36,32 +39,32 @@ proc getValues*(pgdb: DbConn, id : string) : seq[Value] =
     )
   return vals
 
-proc oneValue*(pgdb : DbConn, id : string) : Value = 
+proc oneValue*(pgdb : DbConn, id : string) : Value =
     return newValue(
       pgdb.getRow(sql"SELECT * FROM value WHERE id=?", id))
 
 proc saveValue*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"INSERT INTO value (id, date, value, meter_id) VALUES (?, ?, ?, ?)",
-    pgdb.getValue(sql"SELECT max(id) FROM value").parseInt() + 1, 
-    fromSeconds(json["date"].getFNum() / 1000),
+    pgdb.getValue(sql"SELECT max(id) FROM value").parseInt() + 1,
+    fromUnix((json["date"].getFloat() / 1000).toBiggestInt()),
     json["value"].getStr().parseInt(),
-    json["meter"].getNum()
+    json["meter"].getInt()
   )
 
 proc editValue*(pgdb : DbConn, json : JsonNode) : bool =
   return pgdb.tryExec(
     sql"UPDATE value SET date=?, value=? WHERE id=?",
-    fromSeconds(json["date"].getFNum() / 1000),
+    fromUnix((json["date"].getFloat() / 1000).toBiggestInt()),
     json["value"].getStr().parseInt(),
-    json["id"].getNum()
+    json["id"].getInt()
   )
 
 proc deleteValue*(pgdb : DbConn, json : JsonNode) : bool =
   try:
     pgdb.exec(
       sql"DELETE FROM value WHERE id=?",
-      json["id"].getNum()
+      json["id"].getInt()
     )
     return true
   except:
@@ -69,8 +72,8 @@ proc deleteValue*(pgdb : DbConn, json : JsonNode) : bool =
     return false
 
 proc toJson*(value : Value) : JsonNode =
-  return %* { 
-    "id" : value.id, 
-    "date" : value.date, 
+  return %* {
+    "id" : value.id,
+    "date" : value.date,
     "value": value.value
   }

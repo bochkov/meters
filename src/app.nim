@@ -4,7 +4,7 @@ import jester, asyncdispatch, json, httpcore
 import "db"
 import "meter", "value"
 
-let 
+let
   cpars : seq[TaintedString] = commandLineParams()
   fpars : JsonNode = parseJson(readFile("meters.json"))
 
@@ -16,18 +16,18 @@ addHandler(log)
 
 logging.info("DB = $1:*****@$2:$3/$4" % [
   fpars["db"]["user"].getStr(),
-  fpars["db"]["host"].getStr(), 
-  $fpars["db"]["port"].getNum(),
+  fpars["db"]["host"].getStr(),
+  $fpars["db"]["port"].getInt(),
   fpars["db"]["schema"].getStr()
 ])
 
 var dbCon : DbConn = newConn(
-  "", 
-  fpars["db"]["user"].getStr(), 
-  fpars["db"]["pass"].getStr(), 
+  "",
+  fpars["db"]["user"].getStr(),
+  fpars["db"]["pass"].getStr(),
   "host=$1 port=$2 dbname=$3" % [
     fpars["db"]["host"].getStr(),
-    $fpars["db"]["port"].getNum(),
+    $fpars["db"]["port"].getInt(),
     fpars["db"]["schema"].getStr()
   ]
 )
